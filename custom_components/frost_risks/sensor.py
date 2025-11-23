@@ -5,14 +5,12 @@ import logging
 import math
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     ATTR_TEMPERATURE,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
-    UnitOfTemperature,
-    UnitOfPressure,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -160,7 +158,7 @@ class FrostRisksSensor(SensorEntity):
         else:
             self._attr_native_value = None
 
-    def _calculate_value(self) -> float | int | None:
+    def _calculate_value(self) -> float | None:
         """Calculate the sensor value based on type."""
         if self._temperature is None or self._humidity is None:
             return None
@@ -180,7 +178,7 @@ class FrostRisksSensor(SensorEntity):
         elif self._sensor_type == SENSOR_TYPE_HUMIDITY_RATIO:
             return self._compute_humidity_ratio(self._temperature, self._humidity)
         elif self._sensor_type == SENSOR_TYPE_FROST_RISK:
-            return self._compute_frost_risk_level(self._temperature, self._humidity)
+            return float(self._compute_frost_risk_level(self._temperature, self._humidity))
 
         return None
 
@@ -278,7 +276,12 @@ class FrostRisksSensor(SensorEntity):
         Journal of Applied Meteorology and Climatology, 50, 2267-2269.
         """
         T = temperature
-        RH = humidity
+        RH = max(0.0, min(100.0, humidity))  # Clamp humidity to valid range [0, 100]
+        
+        # For very low humidity, use a simplified approach
+        if RH < 5.0:
+            # At very low humidity, wet-bulb is close to dry-bulb minus a small correction
+            return round(T - 0.5, 2)
         
         wet_bulb = (
             T * math.atan(0.151977 * math.sqrt(RH + 8.313659))
