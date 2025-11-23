@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Frost Risks",
+        "description": "Configure frost risk sensors based on temperature and humidity sensors.",
+        "data": {
+          "name": "Name",
+          "temperature_sensor": "Temperature Sensor",
+          "humidity_sensor": "Humidity Sensor"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "The selected entity does not exist"
+    },
+    "abort": {
+      "already_configured": "This combination of sensors is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update Frost Risks Configuration",
+        "description": "Update the temperature and humidity sensors.",
+        "data": {
+          "name": "Name",
+          "temperature_sensor": "Temperature Sensor",
+          "humidity_sensor": "Humidity Sensor"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "The selected entity does not exist"
+    }
+  }
+}
