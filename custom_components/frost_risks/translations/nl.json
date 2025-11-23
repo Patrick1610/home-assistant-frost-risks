@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Stel Vorstrisico's in",
+        "description": "Configureer vorstrisicosensoren op basis van temperatuur- en luchtvochtigheidssensoren.",
+        "data": {
+          "name": "Naam",
+          "temperature_sensor": "Temperatuursensor",
+          "humidity_sensor": "Luchtvochtigheidssensor"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "De geselecteerde entiteit bestaat niet"
+    },
+    "abort": {
+      "already_configured": "Deze combinatie van sensoren is al geconfigureerd"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Vorstrisico's configuratie bijwerken",
+        "description": "Werk de temperatuur- en luchtvochtigheidssensoren bij.",
+        "data": {
+          "name": "Naam",
+          "temperature_sensor": "Temperatuursensor",
+          "humidity_sensor": "Luchtvochtigheidssensor"
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "De geselecteerde entiteit bestaat niet"
+    }
+  }
+}
