@@ -15,6 +15,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
     DOMAIN,
@@ -100,6 +101,15 @@ class FrostRisksSensor(SensorEntity):
         self._attr_device_class = sensor_info["device_class"]
         self._attr_state_class = sensor_info["state_class"]
         self._attr_icon = sensor_info["icon"]
+        
+        # Set up device info to group all sensors under one device
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry_id)},
+            name=name,
+            manufacturer="Frost Risks",
+            model="Frost Risk Monitor",
+            entry_type=None,
+        )
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks when entity is added."""
