@@ -17,6 +17,10 @@ This integration creates **8 advanced meteorological sensors** based on temperat
 7. **Humidity Ratio** (kg/kg) - Mass of water vapor per unit mass of dry air
 8. **Frost Risk Level** (0-5) - Multi-factor frost risk assessment
 
+### Device grouping
+The integration creates a device per config entry (identifier: (frost_risks, entry_id)). 
+All generated sensors for that instance are attached to that device, which makes them easier to find and manage in Settings → Devices & Services.
+
 ### Modern Architecture
 
 - ✅ **Config Flow UI** - Easy setup through Home Assistant UI (no YAML required)
