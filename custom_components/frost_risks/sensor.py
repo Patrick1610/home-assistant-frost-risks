@@ -108,7 +108,6 @@ class FrostRisksSensor(SensorEntity):
             name=name,
             manufacturer="Frost Risks",
             model="Frost Risk Monitor",
-            entry_type=None,
         )
 
     async def async_added_to_hass(self) -> None:
