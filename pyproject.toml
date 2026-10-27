@@ -1,0 +1,19 @@
+[dependency-groups]
+test = [
+    "homeassistant==2026.9.0",
+    "pytest==9.0.3",
+    "pytest-homeassistant-custom-component==0.13.363",
+    "ruff==0.16.7",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = ["--strict-config", "--strict-markers"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]

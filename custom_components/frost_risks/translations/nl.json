@@ -2,36 +2,60 @@
   "config": {
     "step": {
       "user": {
-        "title": "Stel Vorstrisico's in",
-        "description": "Configureer vorstrisicosensoren op basis van temperatuur- en luchtvochtigheidssensoren.",
+        "title": "Frost Risks",
+        "description": "Kies één weerentiteit, of zowel temperatuur als luchtvochtigheid. Losse sensoren vervangen alleen de bijbehorende weerwaarde. Gebruik weer van dezelfde locatie als het oppervlak. Optionele regen-/sneeuwbronnen moeten actuele neerslag beschrijven, geen totaaltellers. De uitkomsten zijn advies en sturen geen apparaat aan.",
         "data": {
           "name": "Naam",
-          "temperature_sensor": "Temperatuursensor",
-          "humidity_sensor": "Luchtvochtigheidssensor"
+          "weather_entity": "Lokale weerentiteit (optioneel)",
+          "temperature_sensor": "Temperatuursensor (optionele vervanging)",
+          "humidity_sensor": "Luchtvochtigheidssensor (optionele vervanging)",
+          "rain_sensor": "Sensor actuele regenhoeveelheid/intensiteit (optioneel)",
+          "snow_sensor": "Sensor actuele sneeuwhoeveelheid/intensiteit (optioneel)",
+          "surface_temperature_sensor": "Gemeten oppervlaktetemperatuur (optioneel)"
         }
       }
     },
     "error": {
-      "entity_not_found": "De geselecteerde entiteit bestaat niet"
+      "entity_not_found": "De geselecteerde entiteit bestaat niet",
+      "sources_required": "Kies een weerentiteit of zowel temperatuur als luchtvochtigheid",
+      "name_required": "Vul een naam in"
     },
     "abort": {
-      "already_configured": "Deze combinatie van sensoren is al geconfigureerd"
+      "already_configured": "Deze combinatie van bronnen is al ingesteld"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Vorstrisico's configuratie bijwerken",
-        "description": "Werk de temperatuur- en luchtvochtigheidssensoren bij.",
+        "title": "Frost Risks",
+        "description": "Kies één weerentiteit, of zowel temperatuur als luchtvochtigheid. Losse sensoren vervangen alleen de bijbehorende weerwaarde. Gebruik weer van dezelfde locatie als het oppervlak. Optionele regen-/sneeuwbronnen moeten actuele neerslag beschrijven, geen totaaltellers. De uitkomsten zijn advies en sturen geen apparaat aan.",
         "data": {
           "name": "Naam",
-          "temperature_sensor": "Temperatuursensor",
-          "humidity_sensor": "Luchtvochtigheidssensor"
+          "weather_entity": "Lokale weerentiteit (optioneel)",
+          "temperature_sensor": "Temperatuursensor (optionele vervanging)",
+          "humidity_sensor": "Luchtvochtigheidssensor (optionele vervanging)",
+          "rain_sensor": "Sensor actuele regenhoeveelheid/intensiteit (optioneel)",
+          "snow_sensor": "Sensor actuele sneeuwhoeveelheid/intensiteit (optioneel)",
+          "surface_temperature_sensor": "Gemeten oppervlaktetemperatuur (optioneel)"
         }
       }
     },
     "error": {
-      "entity_not_found": "De geselecteerde entiteit bestaat niet"
+      "entity_not_found": "De geselecteerde entiteit bestaat niet",
+      "sources_required": "Kies een weerentiteit of zowel temperatuur als luchtvochtigheid",
+      "name_required": "Vul een naam in"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "defrost_recommended": {
+        "name": "Ontdooien aanbevolen"
+      }
+    },
+    "button": {
+      "surface_cleared": {
+        "name": "Oppervlak vrijgemaakt"
+      }
     }
   }
 }

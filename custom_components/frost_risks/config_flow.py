@@ -1,140 +1,93 @@
-"""Config flow for Frost Risks integration."""
+"""Weather-first setup with backwards-compatible individual sensor overrides."""
+
 from __future__ import annotations
 
-import logging
-from typing import Any
-
 import voluptuous as vol
-
 from homeassistant import config_entries
-from homeassistant.const import CONF_NAME
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import selector
-import homeassistant.helpers.config_validation as cv
+from homeassistant.core import callback
+from homeassistant.helpers import entity_registry, selector
 
-from .const import (
-    DOMAIN,
-    CONF_TEMPERATURE_SENSOR,
-    CONF_HUMIDITY_SENSOR,
-)
+from .const import DOMAIN
+from .runtime import SOURCE_KEYS, effective_config
 
-_LOGGER = logging.getLogger(__name__)
+
+def _schema(values):
+    fields = {vol.Required("name", default=values.get("name", "Frost Risks")): str}
+    for key in SOURCE_KEYS:
+        config = {"domain": "weather" if key == "weather_entity" else "sensor"}
+        if key in {"temperature_sensor", "surface_temperature_sensor"}:
+            config["device_class"] = "temperature"
+        elif key == "humidity_sensor":
+            config["device_class"] = "humidity"
+        fields[vol.Optional(key, description={"suggested_value": values.get(key)})] = (
+            selector.EntitySelector(selector.EntitySelectorConfig(**config))
+        )
+    return vol.Schema(fields)
+
+
+def _validate(hass, values):
+    errors = {}
+    if not values.get("weather_entity") and not (
+        values.get("temperature_sensor") and values.get("humidity_sensor")
+    ):
+        errors["base"] = "sources_required"
+    if not str(values.get("name", "")).strip():
+        errors["name"] = "name_required"
+    registry = entity_registry.async_get(hass)
+    for key in SOURCE_KEYS:
+        entity_id = values.get(key)
+        if (
+            entity_id
+            and hass.states.get(entity_id) is None
+            and registry.async_get(entity_id) is None
+        ):
+            errors[key] = "entity_not_found"
+    return errors
 
 
 class FrostRisksConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Frost Risks."""
-
     VERSION = 1
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Handle the initial step."""
-        errors: dict[str, str] = {}
-
+    async def async_step_user(self, user_input=None):
+        errors = {}
         if user_input is not None:
-            # Validate that the entities exist
-            temperature_sensor = user_input[CONF_TEMPERATURE_SENSOR]
-            humidity_sensor = user_input[CONF_HUMIDITY_SENSOR]
-
-            # Check if entities exist
-            if not self.hass.states.get(temperature_sensor):
-                errors[CONF_TEMPERATURE_SENSOR] = "entity_not_found"
-            if not self.hass.states.get(humidity_sensor):
-                errors[CONF_HUMIDITY_SENSOR] = "entity_not_found"
-
+            errors = _validate(self.hass, user_input)
             if not errors:
-                # Create unique ID based on the sensors
-                await self.async_set_unique_id(
-                    f"{temperature_sensor}_{humidity_sensor}"
+                sources = "_".join(
+                    user_input[key]
+                    for key in ("temperature_sensor", "humidity_sensor", "weather_entity")
+                    if user_input.get(key)
                 )
+                # Retain the historical identity for classic temperature/humidity setup.
+                if not user_input.get("weather_entity"):
+                    sources = f"{user_input['temperature_sensor']}_{user_input['humidity_sensor']}"
+                await self.async_set_unique_id(sources)
                 self._abort_if_unique_id_configured()
-
-                return self.async_create_entry(
-                    title=user_input[CONF_NAME],
-                    data=user_input,
-                )
-
-        # Show form
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_NAME, default="Frost Risks"): cv.string,
-                vol.Required(CONF_TEMPERATURE_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
-                ),
-                vol.Required(CONF_HUMIDITY_SENSOR): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="humidity")
-                ),
-            }
-        )
-
+                return self.async_create_entry(title=user_input["name"], data=user_input)
         return self.async_show_form(
-            step_id="user",
-            data_schema=data_schema,
-            errors=errors,
+            step_id="user", data_schema=_schema(user_input or {}), errors=errors
         )
 
     @staticmethod
     @callback
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> FrostRisksOptionsFlow:
-        """Get the options flow for this handler."""
-        return FrostRisksOptionsFlow(config_entry)
+    def async_get_options_flow(config_entry):
+        # HA owns the read-only config_entry property; do not assign it in __init__.
+        return FrostRisksOptionsFlow()
 
 
 class FrostRisksOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for Frost Risks."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
-        """Manage the options."""
-        errors: dict[str, str] = {}
-
+    async def async_step_init(self, user_input=None):
+        errors = {}
         if user_input is not None:
-            # Validate that the entities exist
-            temperature_sensor = user_input[CONF_TEMPERATURE_SENSOR]
-            humidity_sensor = user_input[CONF_HUMIDITY_SENSOR]
-
-            # Check if entities exist
-            if not self.hass.states.get(temperature_sensor):
-                errors[CONF_TEMPERATURE_SENSOR] = "entity_not_found"
-            if not self.hass.states.get(humidity_sensor):
-                errors[CONF_HUMIDITY_SENSOR] = "entity_not_found"
-
+            errors = _validate(self.hass, user_input)
             if not errors:
-                # Update the config entry with new data
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry,
-                    data=user_input,
-                )
-                return self.async_create_entry(title="", data={})
-
-        # Get current values
-        current_name = self.config_entry.data.get(CONF_NAME, "Frost Risks")
-        current_temp = self.config_entry.data.get(CONF_TEMPERATURE_SENSOR, "")
-        current_humidity = self.config_entry.data.get(CONF_HUMIDITY_SENSOR, "")
-
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_NAME, default=current_name): cv.string,
-                vol.Required(CONF_TEMPERATURE_SENSOR, default=current_temp): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="temperature")
-                ),
-                vol.Required(CONF_HUMIDITY_SENSOR, default=current_humidity): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor", device_class="humidity")
-                ),
-            }
-        )
-
+                values = {**self.config_entry.options, **user_input}
+                # Explicitly clear removed optional sources instead of falling back to old data.
+                values.update({key: user_input.get(key) for key in SOURCE_KEYS})
+                self.hass.config_entries.async_update_entry(self.config_entry, title=values["name"])
+                return self.async_create_entry(title="", data=values)
         return self.async_show_form(
             step_id="init",
-            data_schema=data_schema,
+            data_schema=_schema(user_input or effective_config(self.config_entry)),
             errors=errors,
         )

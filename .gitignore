@@ -42,6 +42,8 @@ coverage.xml
 
 # macOS
 .DS_Store
+.venv/
+.ruff_cache/
 
 # Home Assistant specific
 *.db

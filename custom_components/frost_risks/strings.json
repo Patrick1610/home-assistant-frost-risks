@@ -2,36 +2,60 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up Frost Risks",
-        "description": "Configure frost risk sensors based on temperature and humidity sensors.",
+        "title": "Frost Risks",
+        "description": "Choose one weather entity, or both temperature and humidity sensors. Individual sensors override only their corresponding weather value. Use weather for the same location as the surface. Optional rain/snow inputs must describe current precipitation, not lifetime totals. Outputs are advisory and never control a device.",
         "data": {
           "name": "Name",
-          "temperature_sensor": "Temperature Sensor",
-          "humidity_sensor": "Humidity Sensor"
+          "weather_entity": "Local weather entity (optional)",
+          "temperature_sensor": "Temperature sensor (optional override)",
+          "humidity_sensor": "Humidity sensor (optional override)",
+          "rain_sensor": "Current rain amount/rate sensor (optional)",
+          "snow_sensor": "Current snow amount/rate sensor (optional)",
+          "surface_temperature_sensor": "Measured surface temperature (optional)"
         }
       }
     },
     "error": {
-      "entity_not_found": "The selected entity does not exist"
+      "entity_not_found": "The selected entity does not exist",
+      "sources_required": "Choose a weather entity or both temperature and humidity sensors",
+      "name_required": "Enter a name"
     },
     "abort": {
-      "already_configured": "This combination of sensors is already configured"
+      "already_configured": "This combination of sources is already configured"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Update Frost Risks Configuration",
-        "description": "Update the temperature and humidity sensors.",
+        "title": "Frost Risks",
+        "description": "Choose one weather entity, or both temperature and humidity sensors. Individual sensors override only their corresponding weather value. Use weather for the same location as the surface. Optional rain/snow inputs must describe current precipitation, not lifetime totals. Outputs are advisory and never control a device.",
         "data": {
           "name": "Name",
-          "temperature_sensor": "Temperature Sensor",
-          "humidity_sensor": "Humidity Sensor"
+          "weather_entity": "Local weather entity (optional)",
+          "temperature_sensor": "Temperature sensor (optional override)",
+          "humidity_sensor": "Humidity sensor (optional override)",
+          "rain_sensor": "Current rain amount/rate sensor (optional)",
+          "snow_sensor": "Current snow amount/rate sensor (optional)",
+          "surface_temperature_sensor": "Measured surface temperature (optional)"
         }
       }
     },
     "error": {
-      "entity_not_found": "The selected entity does not exist"
+      "entity_not_found": "The selected entity does not exist",
+      "sources_required": "Choose a weather entity or both temperature and humidity sensors",
+      "name_required": "Enter a name"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "defrost_recommended": {
+        "name": "Defrost recommended"
+      }
+    },
+    "button": {
+      "surface_cleared": {
+        "name": "Surface cleared"
+      }
     }
   }
 }

@@ -1,10 +1,12 @@
 {
   "domain": "frost_risks",
   "name": "Frost Risks",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "documentation": "https://github.com/Patrick1610/home-assistant-frost-risks",
   "dependencies": [],
-  "codeowners": ["@Patrick1610"],
+  "codeowners": [
+    "@Patrick1610"
+  ],
   "requirements": [],
   "iot_class": "local_polling",
   "config_flow": true
