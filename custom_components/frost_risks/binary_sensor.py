@@ -21,7 +21,9 @@ class DefrostRecommended(CoordinatorEntity, BinarySensorEntity):
     def __init__(self, runtime):
         super().__init__(runtime)
         self._attr_unique_id = f"{runtime.entry.entry_id}_defrost_recommended"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, runtime.entry.entry_id)})
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, runtime.entry.entry_id)}, name=runtime.config["name"]
+        )
 
     @property
     def is_on(self):

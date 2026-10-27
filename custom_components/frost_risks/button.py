@@ -20,7 +20,9 @@ class ClearSurfaceEvidence(ButtonEntity):
     def __init__(self, runtime):
         self.runtime = runtime
         self._attr_unique_id = f"{runtime.entry.entry_id}_surface_cleared"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, runtime.entry.entry_id)})
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, runtime.entry.entry_id)}, name=runtime.config["name"]
+        )
 
     @property
     def suggested_object_id(self):

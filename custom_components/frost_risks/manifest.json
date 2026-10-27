@@ -1,7 +1,7 @@
 {
   "domain": "frost_risks",
   "name": "Frost Risks",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "documentation": "https://github.com/Patrick1610/home-assistant-frost-risks",
   "dependencies": [],
   "codeowners": [

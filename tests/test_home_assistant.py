@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.const import Platform
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
@@ -383,4 +384,33 @@ async def test_restore_diagnoses_invalid_timestamp_and_button_only_clears_local_
     )
     assert runtime.evidence.cleared_at is not None
     assert runtime.evidence.snow_at is None
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.parametrize("language", ["en", "nl"])
+async def test_new_ids_are_stable_before_sensor_platform_in_both_languages(hass, language):
+    hass.config.language = language
+    set_weather(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Different fallback title",
+        data={"name": "Named surface", "weather_entity": "weather.local"},
+    )
+    entry.add_to_hass(hass)
+    original_forward = hass.config_entries.async_forward_entry_setups
+
+    async def forward_binary_and_button_first(config_entry, _platforms):
+        for platform in (Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR):
+            await original_forward(config_entry, [platform])
+
+    with patch.object(
+        hass.config_entries,
+        "async_forward_entry_setups",
+        side_effect=forward_binary_and_button_first,
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get("binary_sensor.named_surface_defrost_recommended") is not None
+    assert hass.states.get("button.named_surface_surface_cleared") is not None
+    assert hass.states.get("binary_sensor.different_fallback_title_defrost_recommended") is None
     assert await hass.config_entries.async_unload(entry.entry_id)

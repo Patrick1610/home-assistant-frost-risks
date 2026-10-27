@@ -151,6 +151,8 @@ services are called by this integration.
 
 ## Upgrade from 2.0.0
 
+- Version 2.1.1 also makes the new entities' names/IDs independent of platform
+  setup ordering, with forced-order regression checks in English and Dutch.
 - **Absolute Humidity is corrected by a factor of 100 before rounding.** At
   13 °C / 87% the correct output is 9.86 g/m³, not 0.10; at 14 °C / 87% it is
   10.49 g/m³. The earlier implementation mixed fractional RH with a constant for
