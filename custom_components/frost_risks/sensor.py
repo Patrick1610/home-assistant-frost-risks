@@ -36,7 +36,12 @@ class FrostRisksSensor(CoordinatorEntity[FrostRuntime], SensorEntity):
 
     @property
     def native_value(self):
-        return self.coordinator.data.values.get(self.sensor_type)
+        value = self.coordinator.data.values.get(self.sensor_type)
+        return (
+            round(value, 3)
+            if self.sensor_type == "surface_temperature" and value is not None
+            else value
+        )
 
     @property
     def available(self):
@@ -48,13 +53,20 @@ class FrostRisksSensor(CoordinatorEntity[FrostRuntime], SensorEntity):
         attributes = {
             "temperature": snapshot.observation.temperature,
             "humidity": snapshot.observation.humidity,
-            "calculation_version": "2.1",
+            "calculation_version": "2.2",
         }
         if self.sensor_type == "freezing_point":
             attributes.update(
                 legacy=True,
                 deprecated=True,
                 meaning="Legacy humidity-derived index; not water's freezing point",
+            )
+        if self.sensor_type == "surface_temperature":
+            attributes.update(
+                surface_basis=snapshot.assessment.surface_basis,
+                quality=snapshot.assessment.quality,
+                calibration=self.coordinator.thermal_diagnostics.get("calibration"),
+                advisory_only=True,
             )
         if self.sensor_type == "frost_risk_level":
             descriptions = FROST_RISK_LEVELS.get(snapshot.assessment.level, {})
@@ -65,5 +77,7 @@ class FrostRisksSensor(CoordinatorEntity[FrostRuntime], SensorEntity):
                 quality=snapshot.assessment.quality,
                 missing_context=snapshot.assessment.missing,
                 advisory_only=True,
+                surface_temperature_used=snapshot.assessment.surface_temperature,
+                surface_basis=snapshot.assessment.surface_basis,
             )
         return attributes

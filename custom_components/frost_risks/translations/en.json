@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Frost Risks",
-        "description": "Choose one weather entity, or both temperature and humidity sensors. Individual sensors override only their corresponding weather value. Use weather for the same location as the surface. Optional rain/snow inputs must describe current precipitation, not lifetime totals. Outputs are advisory and never control a device.",
+        "description": "Choose one weather entity, or both temperature and humidity sensors. Individual sensors override only their corresponding weather value. Use weather for the same location as the surface. Optional rain/snow inputs must describe current precipitation, not lifetime totals. Outputs are advisory and never control a device. An interior sensor enables an uncalibrated glass model with temperature history. Heating status records end/duration only, never ice clearance. Select the relevant defrost switch, not ordinary thermostat cycles. Glass parameters are explicit reference assumptions, not Tesla calibration.",
         "data": {
           "name": "Name",
           "weather_entity": "Local weather entity (optional)",
@@ -11,14 +11,20 @@
           "humidity_sensor": "Humidity sensor (optional override)",
           "rain_sensor": "Current rain amount/rate sensor (optional)",
           "snow_sensor": "Current snow amount/rate sensor (optional)",
-          "surface_temperature_sensor": "Measured surface temperature (optional)"
+          "surface_temperature_sensor": "Measured surface temperature (optional)",
+          "interior_temperature_sensor": "Interior temperature near the surface (optional)",
+          "surface_heating_entity": "Defrost/surface heating active (optional)",
+          "glass_thickness_mm": "Reference glass thickness (mm)",
+          "inside_heat_transfer": "Interior heat transfer (W/m²K)",
+          "outside_heat_transfer": "Exterior heat transfer (W/m²K)"
         }
       }
     },
     "error": {
       "entity_not_found": "The selected entity does not exist",
       "sources_required": "Choose a weather entity or both temperature and humidity sensors",
-      "name_required": "Enter a name"
+      "name_required": "Enter a name",
+      "thermal_parameters_invalid": "Invalid glass parameters"
     },
     "abort": {
       "already_configured": "This combination of sources is already configured"
@@ -28,7 +34,7 @@
     "step": {
       "init": {
         "title": "Frost Risks",
-        "description": "Choose one weather entity, or both temperature and humidity sensors. Individual sensors override only their corresponding weather value. Use weather for the same location as the surface. Optional rain/snow inputs must describe current precipitation, not lifetime totals. Outputs are advisory and never control a device.",
+        "description": "Choose one weather entity, or both temperature and humidity sensors. Individual sensors override only their corresponding weather value. Use weather for the same location as the surface. Optional rain/snow inputs must describe current precipitation, not lifetime totals. Outputs are advisory and never control a device. An interior sensor enables an uncalibrated glass model with temperature history. Heating status records end/duration only, never ice clearance. Select the relevant defrost switch, not ordinary thermostat cycles. Glass parameters are explicit reference assumptions, not Tesla calibration.",
         "data": {
           "name": "Name",
           "weather_entity": "Local weather entity (optional)",
@@ -36,14 +42,20 @@
           "humidity_sensor": "Humidity sensor (optional override)",
           "rain_sensor": "Current rain amount/rate sensor (optional)",
           "snow_sensor": "Current snow amount/rate sensor (optional)",
-          "surface_temperature_sensor": "Measured surface temperature (optional)"
+          "surface_temperature_sensor": "Measured surface temperature (optional)",
+          "interior_temperature_sensor": "Interior temperature near the surface (optional)",
+          "surface_heating_entity": "Defrost/surface heating active (optional)",
+          "glass_thickness_mm": "Reference glass thickness (mm)",
+          "inside_heat_transfer": "Interior heat transfer (W/m²K)",
+          "outside_heat_transfer": "Exterior heat transfer (W/m²K)"
         }
       }
     },
     "error": {
       "entity_not_found": "The selected entity does not exist",
       "sources_required": "Choose a weather entity or both temperature and humidity sensors",
-      "name_required": "Enter a name"
+      "name_required": "Enter a name",
+      "thermal_parameters_invalid": "Invalid glass parameters"
     }
   },
   "entity": {

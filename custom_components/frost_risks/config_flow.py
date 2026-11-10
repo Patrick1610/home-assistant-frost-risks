@@ -9,18 +9,30 @@ from homeassistant.helpers import entity_registry, selector
 
 from .const import DOMAIN
 from .runtime import SOURCE_KEYS, effective_config
+from .thermal import THERMAL_DEFAULTS, THERMAL_LIMITS, parameters
 
 
 def _schema(values):
     fields = {vol.Required("name", default=values.get("name", "Frost Risks")): str}
     for key in SOURCE_KEYS:
         config = {"domain": "weather" if key == "weather_entity" else "sensor"}
-        if key in {"temperature_sensor", "surface_temperature_sensor"}:
+        if key == "surface_heating_entity":
+            config["domain"] = ["binary_sensor", "switch", "input_boolean"]
+        if key in {
+            "temperature_sensor",
+            "surface_temperature_sensor",
+            "interior_temperature_sensor",
+        }:
             config["device_class"] = "temperature"
         elif key == "humidity_sensor":
             config["device_class"] = "humidity"
         fields[vol.Optional(key, description={"suggested_value": values.get(key)})] = (
             selector.EntitySelector(selector.EntitySelectorConfig(**config))
+        )
+    for key, default in THERMAL_DEFAULTS.items():
+        low, high = THERMAL_LIMITS[key]
+        fields[vol.Optional(key, default=values.get(key, default))] = selector.NumberSelector(
+            selector.NumberSelectorConfig(min=low, max=high, step=0.1, mode="box")
         )
     return vol.Schema(fields)
 
@@ -34,6 +46,10 @@ def _validate(hass, values):
     if not str(values.get("name", "")).strip():
         errors["name"] = "name_required"
     registry = entity_registry.async_get(hass)
+    try:
+        parameters(values)
+    except ValueError:
+        errors.setdefault("base", "thermal_parameters_invalid")
     for key in SOURCE_KEYS:
         entity_id = values.get(key)
         if (

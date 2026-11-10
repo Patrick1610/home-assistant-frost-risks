@@ -19,6 +19,14 @@ SENSOR_TYPE_FROST_RISK = "frost_risk_level"
 
 # Sensor definitions: [name_en, name_nl, unit, device_class, state_class, icon]
 SENSOR_TYPES = {
+    "surface_temperature": {
+        "name_en": "Surface Temperature Used",
+        "name_nl": "Gebruikte Oppervlaktetemperatuur",
+        "unit": "°C",
+        "device_class": "temperature",
+        "state_class": "measurement",
+        "icon": "mdi:car-windshield",
+    },
     SENSOR_TYPE_ABSOLUTE_HUMIDITY: {
         "name_en": "Absolute Humidity",
         "name_nl": "Absolute Vochtigheid",

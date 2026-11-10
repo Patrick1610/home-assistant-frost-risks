@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Frost Risks",
-        "description": "Kies één weerentiteit, of zowel temperatuur als luchtvochtigheid. Losse sensoren vervangen alleen de bijbehorende weerwaarde. Gebruik weer van dezelfde locatie als het oppervlak. Optionele regen-/sneeuwbronnen moeten actuele neerslag beschrijven, geen totaaltellers. De uitkomsten zijn advies en sturen geen apparaat aan.",
+        "description": "Kies één weerentiteit, of zowel temperatuur als luchtvochtigheid. Losse sensoren vervangen alleen de bijbehorende weerwaarde. Gebruik weer van dezelfde locatie als het oppervlak. Optionele regen-/sneeuwbronnen moeten actuele neerslag beschrijven, geen totaaltellers. De uitkomsten zijn advies en sturen geen apparaat aan. De binnensensor schakelt een ongekalibreerd glasmodel met temperatuurgeschiedenis in. De verwarmingsstatus registreert alleen einde/duur, nooit ijsvrijheid. Kies uitsluitend de relevante ontdooischakelaar; geen gewone thermostaatcyclus. De glasparameters zijn zichtbare referentie-aannames, geen Tesla-kalibratie.",
         "data": {
           "name": "Naam",
           "weather_entity": "Lokale weerentiteit (optioneel)",
@@ -11,14 +11,20 @@
           "humidity_sensor": "Luchtvochtigheidssensor (optionele vervanging)",
           "rain_sensor": "Sensor actuele regenhoeveelheid/intensiteit (optioneel)",
           "snow_sensor": "Sensor actuele sneeuwhoeveelheid/intensiteit (optioneel)",
-          "surface_temperature_sensor": "Gemeten oppervlaktetemperatuur (optioneel)"
+          "surface_temperature_sensor": "Gemeten oppervlaktetemperatuur (optioneel)",
+          "interior_temperature_sensor": "Binnentemperatuur bij het oppervlak (optioneel)",
+          "surface_heating_entity": "Ontdooien-/oppervlakteverwarming actief (optioneel)",
+          "glass_thickness_mm": "Referentieglasdikte (mm)",
+          "inside_heat_transfer": "Warmteoverdracht binnenzijde (W/m²K)",
+          "outside_heat_transfer": "Warmteoverdracht buitenzijde (W/m²K)"
         }
       }
     },
     "error": {
       "entity_not_found": "De geselecteerde entiteit bestaat niet",
       "sources_required": "Kies een weerentiteit of zowel temperatuur als luchtvochtigheid",
-      "name_required": "Vul een naam in"
+      "name_required": "Vul een naam in",
+      "thermal_parameters_invalid": "Ongeldige glasparameters"
     },
     "abort": {
       "already_configured": "Deze combinatie van bronnen is al ingesteld"
@@ -28,7 +34,7 @@
     "step": {
       "init": {
         "title": "Frost Risks",
-        "description": "Kies één weerentiteit, of zowel temperatuur als luchtvochtigheid. Losse sensoren vervangen alleen de bijbehorende weerwaarde. Gebruik weer van dezelfde locatie als het oppervlak. Optionele regen-/sneeuwbronnen moeten actuele neerslag beschrijven, geen totaaltellers. De uitkomsten zijn advies en sturen geen apparaat aan.",
+        "description": "Kies één weerentiteit, of zowel temperatuur als luchtvochtigheid. Losse sensoren vervangen alleen de bijbehorende weerwaarde. Gebruik weer van dezelfde locatie als het oppervlak. Optionele regen-/sneeuwbronnen moeten actuele neerslag beschrijven, geen totaaltellers. De uitkomsten zijn advies en sturen geen apparaat aan. De binnensensor schakelt een ongekalibreerd glasmodel met temperatuurgeschiedenis in. De verwarmingsstatus registreert alleen einde/duur, nooit ijsvrijheid. Kies uitsluitend de relevante ontdooischakelaar; geen gewone thermostaatcyclus. De glasparameters zijn zichtbare referentie-aannames, geen Tesla-kalibratie.",
         "data": {
           "name": "Naam",
           "weather_entity": "Lokale weerentiteit (optioneel)",
@@ -36,14 +42,20 @@
           "humidity_sensor": "Luchtvochtigheidssensor (optionele vervanging)",
           "rain_sensor": "Sensor actuele regenhoeveelheid/intensiteit (optioneel)",
           "snow_sensor": "Sensor actuele sneeuwhoeveelheid/intensiteit (optioneel)",
-          "surface_temperature_sensor": "Gemeten oppervlaktetemperatuur (optioneel)"
+          "surface_temperature_sensor": "Gemeten oppervlaktetemperatuur (optioneel)",
+          "interior_temperature_sensor": "Binnentemperatuur bij het oppervlak (optioneel)",
+          "surface_heating_entity": "Ontdooien-/oppervlakteverwarming actief (optioneel)",
+          "glass_thickness_mm": "Referentieglasdikte (mm)",
+          "inside_heat_transfer": "Warmteoverdracht binnenzijde (W/m²K)",
+          "outside_heat_transfer": "Warmteoverdracht buitenzijde (W/m²K)"
         }
       }
     },
     "error": {
       "entity_not_found": "De geselecteerde entiteit bestaat niet",
       "sources_required": "Kies een weerentiteit of zowel temperatuur als luchtvochtigheid",
-      "name_required": "Vul een naam in"
+      "name_required": "Vul een naam in",
+      "thermal_parameters_invalid": "Ongeldige glasparameters"
     }
   },
   "entity": {

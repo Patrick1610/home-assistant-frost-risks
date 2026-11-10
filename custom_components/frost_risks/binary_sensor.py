@@ -16,7 +16,7 @@ class DefrostRecommended(CoordinatorEntity, BinarySensorEntity):
     _attr_icon = "mdi:car-defrost-front"
     _attr_has_entity_name = True
     _attr_translation_key = "defrost_recommended"
-    _unrecorded_attributes = frozenset({"evidence", "memory_status"})
+    _unrecorded_attributes = frozenset({"evidence", "memory_status", "thermal", "heating_history"})
 
     def __init__(self, runtime):
         super().__init__(runtime)
@@ -50,6 +50,12 @@ class DefrostRecommended(CoordinatorEntity, BinarySensorEntity):
                 if key != "observed_at"
             },
             "advisory_only": True,
-            "calculation_version": "2.1",
+            "calculation_version": "2.2",
             "memory_status": runtime.memory_status,
+            "thermal": runtime.thermal_diagnostics,
+            "heating_history": {
+                **runtime.heating.diagnostics(),
+                "configured": bool(runtime.config.get("surface_heating_entity")),
+                "source_entity": runtime.config.get("surface_heating_entity"),
+            },
         }

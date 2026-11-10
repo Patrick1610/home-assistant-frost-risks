@@ -29,6 +29,8 @@ class Observation:
     rain_reported_at: datetime | None = None
     snow_reported_at: datetime | None = None
     missing: tuple[str, ...] = ()
+    surface_basis: str | None = None
+    interior_temperature: float | None = None
 
 
 def _safe_time(value: object, now: datetime) -> datetime | None:
@@ -93,24 +95,14 @@ def _new_report(reported_at: datetime | None, evidence: Evidence, now: datetime)
     )
 
 
-def assess(observation: Observation, evidence: Evidence, now: datetime) -> Assessment:
-    """Update evidence and screen for frost, frozen wetness, and retained snow."""
-    gap = evidence.observed_at is None or now - evidence.observed_at > HISTORY_GAP
-    if observation.rain is True and _new_report(observation.rain_reported_at, evidence, now):
-        evidence.wet_at = observation.rain_reported_at
-    if observation.snow is True and _new_report(observation.snow_reported_at, evidence, now):
-        evidence.snow_at = observation.snow_reported_at
-        evidence.wet_at = observation.snow_reported_at
-    evidence.observed_at = now
-
+def estimate_surface(observation: Observation) -> tuple[float | None, str, list[str]]:
+    """Keep the weather baseline and an actual surface measurement distinguishable."""
     missing = list(observation.missing)
-    if gap:
-        missing.append("history_gap")
     air = valid_air(observation.temperature, observation.humidity)
     surface = valid_number(observation.surface_temperature)
     if surface is not None and not -80 <= surface <= 80:
         surface = None
-    basis = "measured" if surface is not None else "unmeasured"
+    basis = (observation.surface_basis or "measured") if surface is not None else "unmeasured"
     context_complete = (
         observation.cloud_coverage is not None
         and observation.wind_m_s is not None
@@ -134,6 +126,23 @@ def assess(observation: Observation, evidence: Evidence, now: datetime) -> Asses
             basis = "limited_air_screening"
             missing.append("surface_or_complete_radiation_context")
         surface = temp - allowance
+
+    return surface, basis, missing
+
+
+def assess(observation: Observation, evidence: Evidence, now: datetime) -> Assessment:
+    """Update evidence and screen for frost, frozen wetness, and retained snow."""
+    gap = evidence.observed_at is None or now - evidence.observed_at > HISTORY_GAP
+    if observation.rain is True and _new_report(observation.rain_reported_at, evidence, now):
+        evidence.wet_at = observation.rain_reported_at
+    if observation.snow is True and _new_report(observation.snow_reported_at, evidence, now):
+        evidence.snow_at = observation.snow_reported_at
+        evidence.wet_at = observation.snow_reported_at
+    evidence.observed_at = now
+    surface, basis, missing = estimate_surface(observation)
+    air = valid_air(observation.temperature, observation.humidity)
+    if gap:
+        missing.append("history_gap")
 
     quality = "good" if not missing and not gap and basis != "limited_air_screening" else "limited"
     if evidence.recent("snow_at", now, ICE_MEMORY):

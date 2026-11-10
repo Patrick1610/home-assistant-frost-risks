@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Any
 
@@ -19,10 +19,11 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_conversion import SpeedConverter, TemperatureConverter
 
 from .meteorology import calculate, valid_number
-from .risk import Assessment, Evidence, Observation, assess
+from .risk import Assessment, Evidence, Observation, assess, estimate_surface
+from .thermal import THERMAL_DEFAULTS, GlassState, HeatingHistory, parameters
 
 _LOGGER = logging.getLogger(__name__)
-SOURCE_KEYS = (
+BASE_SOURCE_KEYS = (
     "temperature_sensor",
     "humidity_sensor",
     "weather_entity",
@@ -30,6 +31,8 @@ SOURCE_KEYS = (
     "snow_sensor",
     "surface_temperature_sensor",
 )
+THERMAL_SOURCE_KEYS = ("interior_temperature_sensor", "surface_heating_entity")
+SOURCE_KEYS = (*BASE_SOURCE_KEYS, *THERMAL_SOURCE_KEYS)
 VALID_WEATHER = {
     "clear-night",
     "cloudy",
@@ -92,6 +95,9 @@ class FrostRuntime(DataUpdateCoordinator[Snapshot]):
         self.entry = entry
         self.config = effective_config(entry)
         self.evidence = Evidence()
+        self.glass = GlassState()
+        self.heating = HeatingHistory()
+        self.thermal_diagnostics = {"status": "disabled"}
         self.store = Store(
             hass, 1, f"frost_risks.{entry.entry_id}.surface_evidence", atomic_writes=True
         )
@@ -100,8 +106,19 @@ class FrostRuntime(DataUpdateCoordinator[Snapshot]):
         self._last_evidence = None
         self.memory_status = "new"
         self._binding = json.dumps(
-            {key: self.config.get(key) for key in SOURCE_KEYS}, sort_keys=True
+            {key: self.config.get(key) for key in BASE_SOURCE_KEYS}, sort_keys=True
         )
+        self._thermal_binding = json.dumps(
+            {
+                key: self.config.get(key, default)
+                for key, default in {
+                    "interior_temperature_sensor": None,
+                    **THERMAL_DEFAULTS,
+                }.items()
+            },
+            sort_keys=True,
+        )
+        self._heating_binding = self.config.get("surface_heating_entity")
 
     async def async_start(self) -> None:
         stored = await self.store.async_load()
@@ -115,6 +132,10 @@ class FrostRuntime(DataUpdateCoordinator[Snapshot]):
                 if key in Evidence.__dataclass_fields__
             ):
                 self.memory_status = "restored_partial_invalid_timestamps"
+            if stored.get("thermal_binding") == self._thermal_binding:
+                self.glass = GlassState.restore(stored.get("glass"), dt_util.utcnow())
+            if stored.get("heating_binding") == self._heating_binding:
+                self.heating = HeatingHistory.restore(stored.get("heating"), dt_util.utcnow())
         elif stored is not None:
             self.memory_status = "new_source_binding"
         sources = {str(self.config[key]) for key in SOURCE_KEYS if self.config.get(key)}
@@ -242,18 +263,108 @@ class FrostRuntime(DataUpdateCoordinator[Snapshot]):
     async def _async_update_data(self) -> Snapshot:
         now = dt_util.utcnow()
         observation = self.observe()
+        heating_state = self._state("surface_heating_entity")
+        active = (
+            heating_state.state == "on"
+            if heating_state is not None
+            and heating_state.state in {"on", "off"}
+            and timedelta(0) <= now - _reported_at(heating_state) <= MAX_WEATHER_AGE
+            else None
+        )
+        heating_ended = self.heating.observe(active, now)
+        observation = self._with_thermal_surface(observation, now)
         assessment = assess(observation, self.evidence, now)
         values = calculate(observation.temperature, observation.humidity)
         values["frost_risk_level"] = assessment.level
+        values["surface_temperature"] = assessment.surface_temperature
+        if heating_ended:
+            # This is bookkeeping for a heat-source edge, NEVER an ice-free acknowledgement.
+            await self.store.async_save(self._storage_data())
         self._schedule_save(now)
         return Snapshot(observation, values, assessment)
 
+    def _with_thermal_surface(self, observation: Observation, now) -> Observation:
+        self.thermal_diagnostics = {"status": "disabled"}
+        if not self.config.get("interior_temperature_sensor"):
+            return observation
+        if observation.surface_temperature is not None:
+            self.glass.reset()
+            self.thermal_diagnostics = {"status": "measured_surface_priority"}
+            return observation
+        unheated, baseline_basis, baseline_missing = estimate_surface(observation)
+        observation = replace(observation, missing=tuple(dict.fromkeys(baseline_missing)))
+        boundary_states = [
+            self._state(key) if self.config.get(key) else self._state("weather_entity")
+            for key in ("temperature_sensor", "humidity_sensor")
+        ]
+        boundary_fresh = all(
+            source is not None
+            and timedelta(0) <= now - _reported_at(source) <= timedelta(minutes=15)
+            for source in boundary_states
+        )
+        state = self._state("interior_temperature_sensor")
+        inside = _temperature(
+            state.state if state is not None else None,
+            state.attributes.get("unit_of_measurement") if state is not None else None,
+        )
+        if state is None or not timedelta(0) <= now - _reported_at(state) <= timedelta(minutes=15):
+            inside = None
+        if (
+            inside is None
+            or unheated is None
+            or observation.temperature is None
+            or not boundary_fresh
+        ):
+            self.glass.reset()
+            self.thermal_diagnostics = {"status": "unheated_fallback_missing_input"}
+            return replace(
+                observation, missing=(*observation.missing, "thermal_input_unavailable_or_stale")
+            )
+        try:
+            parameters(self.config)
+            self.thermal_diagnostics = self.glass.advance(
+                now,
+                unheated=unheated,
+                inside=inside,
+                outside=observation.temperature,
+                config=self.config,
+            )
+            self.thermal_diagnostics["unheated_surface_basis"] = baseline_basis
+        except ValueError:
+            self.glass.reset()
+            self.thermal_diagnostics = {"status": "unheated_fallback_invalid_parameters"}
+            return replace(
+                observation, missing=(*observation.missing, "thermal_parameters_invalid")
+            )
+        return replace(
+            observation,
+            surface_temperature=self.glass.temperature,
+            surface_basis="thermal_rc_estimate",
+            interior_temperature=inside,
+            missing=(*observation.missing, "thermal_model_uncalibrated"),
+        )
+
     def _storage_data(self):
-        return {"source_binding": self._binding, "evidence": self.evidence.serialize()}
+        return {
+            "source_binding": self._binding,
+            "evidence": self.evidence.serialize(),
+            "thermal_binding": self._thermal_binding,
+            "glass": self.glass.serialize(),
+            "heating_binding": self._heating_binding,
+            "heating": self.heating.serialize(),
+        }
 
     def _schedule_save(self, now) -> None:
         evidence = self.evidence.serialize()
         material = {key: value for key, value in evidence.items() if key != "observed_at"}
+        material.update(
+            glass=self.glass.serialize(),
+            heating={
+                key: value
+                for key, value in self.heating.serialize().items()
+                if key != "observed_at"
+            },
+        )
         if (
             material != self._last_evidence
             or self._last_saved is None

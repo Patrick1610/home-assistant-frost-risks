@@ -37,6 +37,13 @@ Optional context:
   They must report **current precipitation**, not a lifetime or seasonal total.
   A positive value supplies precipitation evidence; zero means none reported now.
 - A measured surface-temperature sensor takes precedence over an estimate.
+- An optional **Interior temperature** sensor enables the thermal history described
+  below. It must measure the interior on the other side of this surface, at the
+  same location. It is not a proxy for measured glass temperature.
+- An optional **Surface-heating status** observes an existing on/off entity, for
+  example a vehicle's defrost switch. It records the observed end and duration
+  independently of a clearing acknowledgement. Select a defrost stage, not an
+  ordinary thermostat that cycles repeatedly. It does not control that entity.
 
 Weather observations older than three hours are unavailable context. If wind
 units or optional weather fields are missing, they are not invented as zero wind,
@@ -61,18 +68,21 @@ recorded history therefore remain attached to the same entities:
 | Humidity Ratio | kg water vapour per kg dry air, using standard pressure |
 | Frost Risk Level | Advisory surface-risk category, not a percentage probability |
 
-Two entities are added to the existing device:
+These additional entities belong to the same device:
 
 - **Defrost recommended** (`binary_sensor.<name>_defrost_recommended`):
   `on`, `off`, or `unknown` when a recommendation cannot be established.
   Unknown retains readable reason/quality/missing-context attributes.
 - **Surface cleared** (`button.<name>_surface_cleared`): acknowledgement that the
-  relevant surface has actually been cleared, for example after a completed
-  defrost stage. It only clears internal evidence; it does not control a device.
+  relevant surface has actually been cleared. A completed timer alone does not
+  establish this. It only clears internal evidence; it does not control a device.
+- **Surface Temperature Used**: the measured or estimated surface temperature used
+  by the assessment, with a `surface_basis` attribute and recorded numerical
+  history. `thermal_rc_estimate` explicitly identifies the optional model below.
 
 The on/off recommendation includes `reason`, `quality`, `missing_context`,
 `surface_temperature_used`, `surface_basis`, timestamped `evidence`,
-`calculation_version` and `advisory_only`. A computed surface value is explicitly
+`thermal`, `heating_history`, `calculation_version` and `advisory_only`. A computed surface value is explicitly
 labelled as estimated; it is never presented as a measured glass temperature.
 
 Reasons include `surface_frost_possible`, `frozen_wet_surface`, `recent_snow`,
@@ -105,6 +115,53 @@ solar heating and other heat sources can change the real surface temperature.
 The limited fallback keeps temperature/RH-only installations useful without
 silently claiming that the sky is clear or the wind calm.
 
+### Optional interior warmth and glass history (2.2)
+
+Without an interior sensor the previous weather screening remains unchanged.
+With one, a reduced, lumped heat balance estimates the glass temperature over
+time. The unheated weather estimate above is the reference boundary. Interior
+warmth shifts the equilibrium; the glass approaches it gradually and retains
+heat while cooling. In SI units:
+
+```text
+C = density * specific_heat * thickness
+T_equilibrium = T_unheated + h_inside / (h_inside + h_outside) * (T_inside - T_air)
+tau = C / (h_inside + h_outside)
+T_next = T_previous_equilibrium
+       + (T_previous - T_previous_equilibrium) * exp(-elapsed / previous_tau)
+```
+
+Each interval uses its **previous** observed boundary, so a newly warm reading
+does not heat the glass retroactively. Reference float-glass density is
+2500 kg/m³ and specific heat 720 J/(kg K). Options expose thickness (default
+4.5 mm), inside heat transfer (5 W/(m² K)) and outside heat transfer
+(15 W/(m² K)). The defaults give a 405-second time constant; this is **not a
+validated windshield warm-up or ice-melting time**. Heat transfer varies with
+airflow, glass construction and installation. The outside coefficient is fixed,
+not a wind-calibrated vehicle model. `thermal.calibration` therefore remains
+`uncalibrated_reference_glass` and the assessment quality is `limited`.
+
+For example, with air 0 °C, an unheated estimate of −2 °C and interior 20 °C,
+the reference model approaches 3 °C gradually. Ordinary frost-formation risk can
+fall without pressing **Surface cleared**, then return as the estimated glass
+cools. This describes conditions for formation; it does not prove that a prior
+layer of ice or snow has melted. Retained snow/ice evidence still follows the
+existing bounded memory rules. There is no inferred ice mass or melting model.
+
+A measured surface always takes priority. An interior, air or humidity input older than 15 minutes,
+an unavailable input, corrupt parameters, or an observation gap over 15 minutes
+falls back to the unheated estimate. On first use or a long gap the model starts
+unheated; it never extrapolates a current warm cabin across an unknown absence.
+Valid short-gap thermal state is restored after restart. Changing only these
+thermal options does not erase existing weather/snow/ice evidence.
+During a short restart gap, a currently colder boundary conservatively limits
+the old boundary used for that missing interval. The diagnostic status names
+this assumption; no unobserved warm-up is treated as a known measurement.
+
+For a Stormbreaker-style installation, select the existing cabin-temperature
+sensor as **Interior temperature** and the existing defrost switch as
+**Surface-heating status**. Leave the existing outdoor/weather sources selected.
+
 At or below zero, vapour deposition is screened against the frost point; a
 positive dew point means condensation can occur before that water freezes.
 Recent wetness can freeze even in otherwise dry air. Current or recent snow
@@ -131,7 +188,7 @@ context so evidence from one location cannot be transferred to a different one.
 Renaming an instance does not discard its memory. No Recorder query or history
 rewrite is performed.
 
-Use **Surface cleared** only after a completed/confirmed clearing operation.
+Use **Surface cleared** only after a confirmed clearing operation.
 An unchanged numeric precipitation value is not replayed after acknowledgement;
 a value change supplies a new observation. A genuinely current weather condition
 reporting continuing snowfall/rain can legitimately add new evidence.
@@ -141,12 +198,23 @@ again if the conditions persist. An actuator automation should retain its own
 session, eligibility and repeat limits instead of treating every `on` reading as
 permission to start another defrost cycle.
 
+An observed heating `on` → `off` is stored immediately in
+`heating_history.last_heating_ended_at`, with
+`last_heating_duration_seconds`. It is a repeat-limit anchor, not a clearing
+acknowledgement: it does not set `evidence.cleared_at`, erase snow/ice evidence,
+or start the five-minute clearance hold. Unknown → off and long observation gaps
+do not fabricate a completed heating run. The history and its separate source
+binding survive restarts. Automations can check `heating_history.configured`
+before depending on this metadata. The integration never calls the heating switch.
+
 Calculations update on local source events and once a minute, so memory/timers
 also progress when values do not change. State writes are debounced; unload
 removes listeners/timers and flushes pending evidence. Diagnostic evidence
-attributes are excluded from Recorder, and one-minute heartbeats do not create
-new advisory-history rows. Observation heartbeats are persisted at most every
-30 minutes; material evidence changes are persisted promptly. No climate or switch
+attributes are excluded from Recorder. Without the optional thermal model,
+unchanged one-minute heartbeats do not create new advisory-history rows.
+Observation heartbeats are persisted at most every 30 minutes; active thermal
+state changes are saved with a ten-second debounce, and observed heating ends
+are saved immediately. No climate or switch
 services are called by this integration.
 
 ## Upgrade from 2.0.0
@@ -181,6 +249,13 @@ formula domain is correctly classified as no deposition evidence when the
 surface is warmer than that domain.
 
 ## Sources and limits
+
+- [AGC reference float-glass properties](https://www.agc-yourglass.com/sites/default/files/agc_docs/Factsheet_Sunmax_0820_EN.pdf):
+  density and specific heat for the reduced heat balance. They do not establish
+  a Tesla windshield thickness or heat-transfer coefficient.
+- [Du et al., transient vehicle windshield heat transfer](https://doi.org/10.1177/0954407019875356):
+  windshield temperature depends on transient conduction, convection and radiation.
+  Our reduced RC approximation does not reproduce or claim validation from that model.
 
 - [Met Office: frost and ice](https://weather.metoffice.gov.uk/learn-about/weather/types-of-weather/frost-and-ice):
   exposed surfaces can freeze with air temperatures 0–4 °C on clear, calm nights.
